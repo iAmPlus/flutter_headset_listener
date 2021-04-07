@@ -30,8 +30,6 @@ public class SwiftHeadsetListenerPlugin: NSObject, FlutterPlugin {
         switch call.method {
         case "isHeadphoneConnected":
             result(SwiftHeadsetListenerPlugin.hasHeadphones())
-        case "isMicConnected":
-            result(SwiftHeadsetListenerPlugin.hasMicrophone())
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -66,12 +64,10 @@ public class SwiftHeadsetListenerPlugin: NSObject, FlutterPlugin {
         guard let eventSink = eventStreamHandler.eventSink else { return }
 
         let headphonesConnected = hasHeadphones()
-        let micConnected = hasMicrophone()
 
         let event: [String: Any] = [
             "type": "DeviceChanged",
             "connected": headphonesConnected,
-            "mic": micConnected
         ]
 
         eventSink(event)
@@ -82,10 +78,4 @@ public class SwiftHeadsetListenerPlugin: NSObject, FlutterPlugin {
         return session.currentRoute.outputs.filter({ $0.portType == .headphones || $0.portType == .bluetoothA2DP }).count > 0
     }
 
-    static func hasMicrophone() -> Bool {
-        let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(AVAudioSession.Category.playAndRecord, options: [.mixWithOthers, .allowBluetooth])
-        guard session.isInputAvailable, let inputs = session.availableInputs else { return false }
-        return inputs.filter({ $0.portType == .headsetMic || $0.portType == .bluetoothHFP }).count > 0
-    }
 }
