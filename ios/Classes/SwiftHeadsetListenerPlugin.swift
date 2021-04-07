@@ -2,6 +2,7 @@ import AVFoundation
 import Flutter
 import UIKit
 
+
 var isDefaultAudioConfigurationEnabled: Bool = true
 
 class HeadsetEventStreamHandler: NSObject, FlutterStreamHandler {
@@ -19,7 +20,7 @@ class HeadsetEventStreamHandler: NSObject, FlutterStreamHandler {
 
 public class SwiftHeadsetListenerPlugin: NSObject, FlutterPlugin {
     static let eventStreamHandler = HeadsetEventStreamHandler()
-
+ 
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(name: "me.towerz.headsetlistener/method", binaryMessenger: registrar.messenger())
         let instance = SwiftHeadsetListenerPlugin()
@@ -34,7 +35,25 @@ public class SwiftHeadsetListenerPlugin: NSObject, FlutterPlugin {
             result(SwiftHeadsetListenerPlugin.hasHeadphones())
         case "deviceName":
             result(SwiftHeadsetListenerPlugin.deviceName())
-        
+        case "enableIOSDefaultAudioSessionConfiguration":
+            guard let args = call.arguments as? NSDictionary else {
+                          result(FlutterError(
+                                  code: "METHOD_CALL",
+                                  message: call.method + " Arguments must be an NSDictionary",
+                                  details: nil)
+                          )
+                          break
+                      }
+            guard let isEnabled = args["isEnabled"] as? Bool else {
+                               result(FlutterError(
+                                       code: "METHOD_CALL",
+                                       message: call.method + " Arguments[path] must be a Bool",
+                                       details: nil)
+                               )
+                               break
+                           }
+            isDefaultAudioConfigurationEnabled = isEnabled;
+
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -77,6 +96,8 @@ public class SwiftHeadsetListenerPlugin: NSObject, FlutterPlugin {
         return name;
     }
     
+   
+    
 
     static func onDeviceChange() {
         guard let eventSink = eventStreamHandler.eventSink else { return }
@@ -97,9 +118,8 @@ public class SwiftHeadsetListenerPlugin: NSObject, FlutterPlugin {
         if(isDefaultAudioConfigurationEnabled) {
         
           let session = AVAudioSession.sharedInstance()
+          return session.currentRoute.outputs.filter({ $0.portType == .headphones || $0.portType == .bluetoothA2DP }).count > 0
          }
-        return session.currentRoute.outputs.filter({ $0.portType == .headphones || $0.portType == .bluetoothA2DP }).count > 0
-       
     }
 
 }
