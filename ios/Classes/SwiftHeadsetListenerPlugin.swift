@@ -2,6 +2,8 @@ import AVFoundation
 import Flutter
 import UIKit
 
+var isDefaultAudioConfigurationEnabled: Bool = true
+
 class HeadsetEventStreamHandler: NSObject, FlutterStreamHandler {
     var eventSink: FlutterEventSink? = nil
     func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
@@ -47,6 +49,7 @@ public class SwiftHeadsetListenerPlugin: NSObject, FlutterPlugin {
     }
 
     @objc static func handleRouteChange(notification: Notification) {
+
         guard let userInfo = notification.userInfo,
             let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
             let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else {
@@ -91,8 +94,12 @@ public class SwiftHeadsetListenerPlugin: NSObject, FlutterPlugin {
     }
 
     static func hasHeadphones() -> Bool {
-        let session = AVAudioSession.sharedInstance()
+        if(isDefaultAudioConfigurationEnabled) {
+        
+          let session = AVAudioSession.sharedInstance()
+         }
         return session.currentRoute.outputs.filter({ $0.portType == .headphones || $0.portType == .bluetoothA2DP }).count > 0
+       
     }
 
 }
