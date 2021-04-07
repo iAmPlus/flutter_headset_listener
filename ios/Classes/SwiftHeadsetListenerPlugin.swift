@@ -116,10 +116,9 @@ public class SwiftHeadsetListenerPlugin: NSObject, FlutterPlugin {
 
     static func hasHeadphones() -> Bool {
         if(isDefaultAudioConfigurationEnabled) {
-        
-          let session = AVAudioSession.sharedInstance()
-          return session.currentRoute.outputs.filter({ $0.portType == .headphones || $0.portType == .bluetoothA2DP }).count > 0
+          return AVAudioSession.sharedInstance().currentRoute.outputs.filter({ $0.portType == .headphones || $0.portType == .bluetoothA2DP }).count > 0
          }
+        return AVAudioSession.sharedInstance().currentRoute.outputs.filter({ $0.portType == .headphones || $0.portType == .bluetoothA2DP }).count > 0
     }
 
 }
