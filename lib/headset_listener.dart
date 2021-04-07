@@ -1,15 +1,19 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:rxdart/rxdart.dart';
 
 enum HeadsetState { CONNECTED, DISCONNECTED }
+// ignore: unused_element
+const _DEFAULT_IOS_AUDIO_SESSION_CONFIGURATIONS = true;
 
 class HeadsetEvent {
   final HeadsetState state;
   final bool hasMicrophone;
+  final String deviceName;
 
-  HeadsetEvent({this.state, this.hasMicrophone});
+  HeadsetEvent({this.state, this.hasMicrophone, this.deviceName});
 }
 
 class HeadsetListener {
@@ -24,6 +28,16 @@ class HeadsetListener {
   StreamSubscription<dynamic> _eventSubscription;
 
   ValueStream<HeadsetEvent> get events => _headsetEventSubject.stream;
+  bool _enableIOSDefaultAudioSessionConfiguration =
+      _DEFAULT_IOS_AUDIO_SESSION_CONFIGURATIONS;
+  set enableIOSDefaultAudioSessionConfiguration(bool newValue) {
+    if (!Platform.isIOS) {
+      return;
+    }
+    _enableIOSDefaultAudioSessionConfiguration = newValue;
+    _methodChannel.invokeMethod('enableIOSDefaultAudioSessionConfiguration',
+        {"isEnabled": _enableIOSDefaultAudioSessionConfiguration});
+  }
 
   Future<HeadsetState> get headsetState async {
     final isHeadsetConnected =
@@ -33,8 +47,8 @@ class HeadsetListener {
         : HeadsetState.DISCONNECTED;
   }
 
-  Future<bool> get isMicConnected async =>
-      await _methodChannel.invokeMethod("isMicConnected");
+  Future<String> get deviceName async =>
+      await _methodChannel.invokeMethod("deviceName");
 
   HeadsetListener() {
     _addNativeListener();
@@ -54,9 +68,9 @@ class HeadsetListener {
             : HeadsetState.DISCONNECTED;
         _headsetEventSubject.sink.add(
           HeadsetEvent(
-            state: state,
-            hasMicrophone: event['mic'],
-          ),
+              state: state,
+              hasMicrophone: event['mic'],
+              deviceName: event['deviceName']),
         );
         break;
       default:
