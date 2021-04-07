@@ -28,16 +28,6 @@ class HeadsetListener {
   StreamSubscription<dynamic> _eventSubscription;
 
   ValueStream<HeadsetEvent> get events => _headsetEventSubject.stream;
-  bool _enableIOSDefaultAudioSessionConfiguration =
-      _DEFAULT_IOS_AUDIO_SESSION_CONFIGURATIONS;
-  set enableIOSDefaultAudioSessionConfiguration(bool newValue) {
-    if (!Platform.isIOS) {
-      return;
-    }
-    _enableIOSDefaultAudioSessionConfiguration = newValue;
-    _methodChannel.invokeMethod('enableIOSDefaultAudioSessionConfiguration',
-        {"isEnabled": _enableIOSDefaultAudioSessionConfiguration});
-  }
 
   Future<HeadsetState> get headsetState async {
     final isHeadsetConnected =
@@ -69,7 +59,6 @@ class HeadsetListener {
         _headsetEventSubject.sink.add(
           HeadsetEvent(
               state: state,
-              hasMicrophone: event['mic'],
               deviceName: event['deviceName']),
         );
         break;
