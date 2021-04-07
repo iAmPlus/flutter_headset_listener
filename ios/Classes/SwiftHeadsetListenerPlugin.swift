@@ -30,6 +30,9 @@ public class SwiftHeadsetListenerPlugin: NSObject, FlutterPlugin {
         switch call.method {
         case "isHeadphoneConnected":
             result(SwiftHeadsetListenerPlugin.hasHeadphones())
+        case "deviceName":
+            result(SwiftHeadsetListenerPlugin.deviceName())
+        
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -52,22 +55,36 @@ public class SwiftHeadsetListenerPlugin: NSObject, FlutterPlugin {
 
         switch reason {
         case .newDeviceAvailable: // New device found.
+            print("New Device")
             onDeviceChange()
         case .oldDeviceUnavailable: // Old device removed.
+            print("Old Device")
             onDeviceChange()
         default:
             break
         }
     }
+    
+    static func deviceName() -> String {
+        let session = AVAudioSession.sharedInstance()
+        var name = "";
+        for outputPort in session.currentRoute.outputs {
+            name = outputPort.portName;
+        }
+        return name;
+    }
+    
 
     static func onDeviceChange() {
         guard let eventSink = eventStreamHandler.eventSink else { return }
 
         let headphonesConnected = hasHeadphones()
-
+        let currentDeviceName = deviceName()
+        
         let event: [String: Any] = [
             "type": "DeviceChanged",
             "connected": headphonesConnected,
+            "deviceName": currentDeviceName,
         ]
 
         eventSink(event)
