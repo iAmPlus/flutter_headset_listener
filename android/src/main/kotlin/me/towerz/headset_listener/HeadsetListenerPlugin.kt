@@ -5,9 +5,8 @@ import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.util.Log
-import androidx.annotation.NonNull;
+import androidx.annotation.NonNull
 import androidx.core.os.HandlerCompat
-
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
@@ -17,15 +16,17 @@ import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.Registrar
 
 /** HeadsetListenerPlugin */
-public class HeadsetListenerPlugin: FlutterPlugin, MethodCallHandler {
+public class HeadsetListenerPlugin : FlutterPlugin, MethodCallHandler {
   /// The MethodChannel that will the communication between Flutter and native Android
   ///
   /// This local reference serves to register the plugin with the Flutter Engine and unregister it
   /// when the Flutter Engine is detached from the Activity
-  private lateinit var channel : MethodChannel
-  private lateinit var eventChannel : EventChannel
+  private lateinit var channel: MethodChannel
+  private lateinit var eventChannel: EventChannel
 
-  override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+  override fun onAttachedToEngine(
+      @NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding
+  ) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, methodChannelName)
     channel.setMethodCallHandler(this)
     eventChannel = EventChannel(flutterPluginBinding.binaryMessenger, eventChannelName)
@@ -70,37 +71,31 @@ public class HeadsetListenerPlugin: FlutterPlugin, MethodCallHandler {
         }
       }
 
-    val isMicConnected: Boolean
+    val deviceName: String
       get() {
         val devices = audioManager.getDevices(AudioManager.GET_DEVICES_ALL)
         Log.d(LOG_TAG, "isMicConnected - checking devices:")
         devices.forEach { Log.d(LOG_TAG, "productName=${it.productName}, type=${it.type}") }
         Log.d(LOG_TAG, "isMicConnected - finished")
-        return devices.any {
-          when(it.type) {
-            AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
-            AudioDeviceInfo.TYPE_WIRED_HEADSET -> true
-            else -> false
+        return "No Data";
+      }
+
+    private var eventStreamHandler: EventChannel.StreamHandler =
+        object : EventChannel.StreamHandler {
+          override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+            eventSink = events
+          }
+
+          override fun onCancel(arguments: Any?) {
+            eventSink = null
           }
         }
-      }
-
-    private var eventStreamHandler: EventChannel.StreamHandler = object : EventChannel.StreamHandler {
-      override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-        eventSink = events
-      }
-
-      override fun onCancel(arguments: Any?) {
-        eventSink = null
-      }
-    }
 
     @JvmStatic
     fun registerWith(registrar: Registrar) {
       val channel = MethodChannel(registrar.messenger(), "headset_listener")
       channel.setMethodCallHandler(HeadsetListenerPlugin())
-      EventChannel(registrar.messenger(), eventChannelName)
-              .setStreamHandler(eventStreamHandler)
+      EventChannel(registrar.messenger(), eventChannelName).setStreamHandler(eventStreamHandler)
       listenToHeadsetChanges(registrar.context().applicationContext)
     }
 
@@ -108,30 +103,36 @@ public class HeadsetListenerPlugin: FlutterPlugin, MethodCallHandler {
     fun listenToHeadsetChanges(context: Context) {
       audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
       Log.d(LOG_TAG, "listenToHeadsetChanges")
-      audioManager.registerAudioDeviceCallback(object: AudioDeviceCallback() {
-        override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>?) {
-          Log.d(LOG_TAG, "onAudioDevicesAdded:")
-          addedDevices?.forEach { Log.d(LOG_TAG, "productName=${it.productName}, type=${it.type}") }
-          onAudioDevicesUpdated()
-          Log.d(LOG_TAG, "onAudioDevicesAdded - finished")
-        }
+      audioManager.registerAudioDeviceCallback(
+          object : AudioDeviceCallback() {
+            override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>?) {
+              Log.d(LOG_TAG, "onAudioDevicesAdded:")
+              addedDevices?.forEach {
+                Log.d(LOG_TAG, "productName=${it.productName}, type=${it.type}")
+              }
+              onAudioDevicesUpdated()
+              Log.d(LOG_TAG, "onAudioDevicesAdded - finished")
+            }
 
-        override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>?) {
-          Log.d(LOG_TAG, "onAudioDevicesRemoved:")
-          removedDevices?.forEach { Log.d(LOG_TAG, "productName=${it.productName}, type=${it.type}") }
-          onAudioDevicesUpdated()
-          Log.d(LOG_TAG, "onAudioDevicesRemoved - finished")
-        }
+            override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>?) {
+              Log.d(LOG_TAG, "onAudioDevicesRemoved:")
+              removedDevices?.forEach {
+                Log.d(LOG_TAG, "productName=${it.productName}, type=${it.type}")
+              }
+              onAudioDevicesUpdated()
+              Log.d(LOG_TAG, "onAudioDevicesRemoved - finished")
+            }
 
-        private fun onAudioDevicesUpdated() {
-          val eventSink = this@Companion.eventSink ?: return
-          eventSink.success(mapOf(
-                  "type" to "DeviceChanged",
-                  "connected" to isHeadphoneConnected,
-                  "mic" to isMicConnected
-          ))
-        }
-      }, HandlerCompat.createAsync(context.mainLooper))
+            private fun onAudioDevicesUpdated() {
+              val eventSink = this@Companion.eventSink ?: return
+              eventSink.success(
+                  mapOf(
+                      "type" to "DeviceChanged",
+                      "connected" to isHeadphoneConnected,
+                      "deviceName" to deviceName))
+            }
+          },
+          HandlerCompat.createAsync(context.mainLooper))
       Log.d(LOG_TAG, "listenToHeadsetChanges - added listener")
     }
   }
@@ -139,7 +140,7 @@ public class HeadsetListenerPlugin: FlutterPlugin, MethodCallHandler {
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
     when (call.method) {
       "isHeadphoneConnected" -> result.success(isHeadphoneConnected)
-      "isMicConnected" -> result.success(isMicConnected)
+      "deviceName" -> result.success(deviceName)
       else -> result.notImplemented()
     }
   }
