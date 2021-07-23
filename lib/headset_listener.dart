@@ -9,9 +9,9 @@ enum HeadsetState { CONNECTED, DISCONNECTED }
 const _DEFAULT_IOS_AUDIO_SESSION_CONFIGURATIONS = true;
 
 class HeadsetEvent {
-  final HeadsetState state;
-  final bool hasMicrophone;
-  final String deviceName;
+  final HeadsetState? state;
+  final bool? hasMicrophone;
+  final String? deviceName;
 
   HeadsetEvent({this.state, this.hasMicrophone, this.deviceName});
 }
@@ -25,7 +25,7 @@ class HeadsetListener {
 
   final _headsetEventSubject = BehaviorSubject<HeadsetEvent>();
 
-  StreamSubscription<dynamic> _eventSubscription;
+  StreamSubscription<dynamic>? _eventSubscription;
 
   ValueStream<HeadsetEvent> get events => _headsetEventSubject.stream;
 
@@ -37,7 +37,7 @@ class HeadsetListener {
         : HeadsetState.DISCONNECTED;
   }
 
-  Future<String> get deviceName async =>
+  Future<String?> get deviceName async =>
       await _methodChannel.invokeMethod("deviceName");
 
   HeadsetListener() {
